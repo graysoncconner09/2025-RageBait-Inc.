@@ -1,0 +1,523 @@
+<script type="text/javascript">
+        var gk_isXlsx = false;
+        var gk_xlsxFileLookup = {};
+        var gk_fileData = {};
+        function filledCell(cell) {
+          return cell !== '' && cell != null;
+        }
+        function loadFileData(filename) {
+        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
+            try {
+                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
+                var firstSheetName = workbook.SheetNames[0];
+                var worksheet = workbook.Sheets[firstSheetName];
+
+                // Convert sheet to JSON to filter blank rows
+                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
+                // Filter out blank rows (rows where all cells are empty, null, or undefined)
+                var filteredData = jsonData.filter(row => row.some(filledCell));
+
+                // Heuristic to find the header row by ignoring rows with fewer filled cells than the next row
+                var headerRowIndex = filteredData.findIndex((row, index) =>
+                  row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
+                );
+                // Fallback
+                if (headerRowIndex === -1 || headerRowIndex > 25) {
+                  headerRowIndex = 0;
+                }
+
+                // Convert filtered JSON back to CSV
+                var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex)); // Create a new sheet from filtered array of arrays
+                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
+                return csv;
+            } catch (e) {
+                console.error(e);
+                return "";
+            }
+        }
+        return gk_fileData[filename] || "";
+        }
+        </script><!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RageBait AI - Personal Roast</title>
+    <style>
+        /* Global Styles */
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            font-family: 'Arial', sans-serif; 
+            background: linear-gradient(135deg, #1a1a1a, #2d1b69); 
+            color: #fff; 
+            min-height: 100vh; 
+            display: flex; 
+            flex-direction: column; 
+        }
+        .container { max-width: 800px; margin: 0 auto; padding: 20px; flex: 1; }
+        
+        /* Header */
+        header { text-align: center; padding: 20px 0; }
+        h1 { font-size: 2.5em; color: #ff6b6b; text-shadow: 2px 2px 4px rgba(0,0,0,0.5); margin-bottom: 10px; }
+        .subtitle { font-size: 1.2em; opacity: 0.8; }
+        
+        /* Personal Roast Section */
+        .personal-roast { margin: 15px 0; text-align: center; }
+        .personal-roast textarea { 
+            width: 100%; 
+            height: 100px; 
+            padding: 10px; 
+            background: rgba(0,0,0,0.5); 
+            border: 1px solid #5352ed; 
+            border-radius: 10px; 
+            color: white; 
+            font-size: 1em; 
+            resize: none; 
+        }
+        .personal-roast textarea:focus { outline: none; border-color: #3742fa; }
+        .personal-roast button { 
+            margin-top: 10px; 
+            background: #ff6b6b; 
+            color: white; 
+            border: none; 
+            padding: 10px 20px; 
+            border-radius: 20px; 
+            cursor: pointer; 
+            transition: background 0.2s; 
+        }
+        .personal-roast button:hover { background: #e63950; }
+        
+        /* Custom Scenario Input */
+        .custom-scenario { margin: 15px 0; text-align: center; }
+        .custom-scenario input { 
+            width: 100%; 
+            padding: 10px; 
+            background: rgba(0,0,0,0.5); 
+            border: 1px solid #5352ed; 
+            border-radius: 10px; 
+            color: white; 
+            font-size: 1em; 
+        }
+        .custom-scenario input:focus { outline: none; border-color: #3742fa; }
+        
+        /* Category Filter */
+        .category-filter { margin: 15px 0; text-align: center; }
+        .category-filter select { 
+            padding: 8px; 
+            background: #5352ed; 
+            color: white; 
+            border: none; 
+            border-radius: 10px; 
+            font-size: 1em; 
+            cursor: pointer; 
+        }
+        .category-filter select:focus { outline: none; background: #3742fa; }
+        
+        /* Prompt Section */
+        .prompt-section { background: rgba(255,255,255,0.1); border-radius: 15px; padding: 20px; margin: 20px 0; text-align: center; }
+        .prompt-text { font-size: 1.3em; font-weight: bold; color: #ffd93d; margin-bottom: 15px; animation: pulse 2s infinite; }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.7; } }
+        .new-prompt-btn { 
+            background: #ff4757; 
+            color: white; 
+            border: none; 
+            padding: 12px 24px; 
+            border-radius: 25px; 
+            font-size: 1em; 
+            cursor: pointer; 
+            transition: transform 0.2s; 
+        }
+        .new-prompt-btn:hover { transform: scale(1.05); }
+        
+        /* Response Section */
+        .response-section { background: rgba(0,0,0,0.3); border-radius: 15px; padding: 20px; margin: 20px 0; min-height: 150px; }
+        .response-text { font-size: 1.1em; line-height: 1.6; white-space: pre-wrap; max-width: 100%; }
+        .loading { color: #ffd93d; font-style: italic; animation: spin 1s linear infinite; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .error { color: #ff6b6b; text-align: center; }
+        
+        /* Rage Meter */
+        .rage-meter { margin: 10px 0; text-align: center; }
+        .rage-meter-label { font-size: 0.9em; margin-bottom: 5px; }
+        .rage-meter-bar { 
+            width: 100%; 
+            height: 20px; 
+            background: #333; 
+            border-radius: 10px; 
+            overflow: hidden; 
+        }
+        .rage-meter-fill { 
+            height: 100%; 
+            background: linear-gradient(90deg, #ff4757, #ffd93d); 
+            transition: width 1s ease; 
+        }
+        
+        /* Action Buttons */
+        .actions { display: flex; justify-content: center; gap: 10px; flex-wrap: wrap; margin: 20px 0; }
+        button { 
+            background: #5352ed; 
+            color: white; 
+            border: none; 
+            padding: 10px 20px; 
+            border-radius: 20px; 
+            cursor: pointer; 
+            transition: background 0.2s; 
+        }
+        button:hover { background: #3742fa; }
+        .share-btn { background: #1da1f2; }
+        .share-btn:hover { background: #0d8bd9; }
+        .copy-btn { background: #e84393; }
+        .copy-btn:hover { background: #c13584; }
+        .counter-btn { background: #00b894; }
+        .counter-btn:hover { background: #00a085; }
+        
+        /* Counter Mode */
+        .counter-section { display: none; background: rgba(255,255,255,0.1); border-radius: 15px; padding: 20px; margin: 20px 0; }
+        .counter-input { 
+            width: 100%; 
+            padding: 10px; 
+            background: rgba(0,0,0,0.5); 
+            border: 1px solid #5352ed; 
+            border-radius: 10px; 
+            color: white; 
+            font-size: 1em; 
+            margin-bottom: 10px; 
+        }
+        .counter-response { margin-top: 10px; padding: 15px; background: rgba(0,255,127,0.2); border-radius: 10px; }
+        
+        /* Footer */
+        footer { text-align: center; padding: 20px; opacity: 0.6; font-size: 0.9em; }
+        
+        /* Responsive */
+        @media (max-width: 600px) { 
+            h1 { font-size: 2em; } 
+            .actions { flex-direction: column; align-items: center; } 
+            .category-filter select, .custom-scenario input, .personal-roast textarea { width: 100%; } 
+        }
+        
+        /* Screen Reader Only */
+        .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); border: 0; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>RageBait AI</h1>
+            <p class="subtitle">Powered by Groq (Llama 3.3 70B). Roast your life’s drama!</p>
+        </header>
+        
+        <div class="personal-roast">
+            <label for="personalContext" class="sr-only">Enter Your Life Situation</label>
+            <textarea id="personalContext" placeholder="Describe a situation to roast (e.g., My coworker steals my lunch)..." maxlength="1000" aria-label="Enter your life situation"></textarea>
+            <button onclick="generatePersonalRoast()" aria-label="Roast people in your situation">Roast Them!</button>
+        </div>
+        
+        <div class="custom-scenario">
+            <label for="customScenario" class="sr-only">Enter Your Rage Scenario</label>
+            <input type="text" id="customScenario" placeholder="Enter a topic (e.g., Socks with sandals rule)..." maxlength="500" aria-label="Enter your rage scenario">
+        </div>
+        
+        <div class="category-filter">
+            <label for="categorySelect" class="sr-only">Select Rage Category</label>
+            <select id="categorySelect" onchange="generateRage()" aria-label="Select rage bait category">
+                <option value="all">All Categories</option>
+                <option value="food">Food Fights</option>
+                <option value="tech">Tech Tantrums</option>
+                <option value="pop">Pop Culture Clashes</option>
+                <option value="sports">Sports Showdowns</option>
+            </select>
+        </div>
+        
+        <section class="prompt-section">
+            <div class="prompt-text" id="promptDisplay" role="alert">Enter a situation, topic, or click "Get Rage" for chaos.</div>
+            <button class="new-prompt-btn" onclick="generateRage()" aria-label="Generate new rage bait">Get Rage</button>
+        </section>
+        
+        <section class="response-section">
+            <div id="responseDisplay" class="response-text" role="region" aria-live="polite">Response will appear here...</div>
+        </section>
+        
+        <div class="rage-meter">
+            <div class="rage-meter-label">Rage Meter</div>
+            <div class="rage-meter-bar">
+                <div id="rageMeterFill" class="rage-meter-fill" style="width: 0%;"></div>
+            </div>
+        </div>
+        
+        <div class="actions">
+            <button onclick="generateRage()" aria-label="Generate new prompt">New Prompt</button>
+            <button class="share-btn" onclick="shareResponse()" aria-label="Share response on X">Share on X</button>
+            <button class="copy-btn" onclick="copyResponse()" aria-label="Copy response to clipboard">Copy to Clipboard</button>
+            <button class="counter-btn" onclick="toggleCounter()" aria-label="Toggle counter mode">Fight Back</button>
+        </div>
+        
+        <section class="counter-section" id="counterSection">
+            <input type="text" class="counter-input" id="counterInput" placeholder="Type your comeback..." maxlength="500" aria-label="Enter your rebuttal">
+            <button onclick="generateCounter()" aria-label="Send comeback">Send Comeback</button>
+            <div id="counterResponse" class="counter-response" role="region" aria-live="polite"></div>
+        </section>
+    </div>
+    
+    <footer>
+        <p>&copy; 2025 RageBait Inc. (Just kidding.) Powered by Groq API (Llama 3.3). Roast away.</p>
+    </footer>
+    
+    <script>
+        // WARNING: API key is embedded for testing. Regenerate at https://console.groq.com/keys after use.
+        // For production, use environment variables or a secure config (e.g., fetch from server).
+        const API_KEY = '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'; // Your Groq API key
+        const API_URL = 'https://api.groq.com/openai/v1/chat/completions'; // Groq API endpoint
+        const MODEL = 'llama-3.3-70b-versatile'; // Llama 3.3 70B Versatile
+        
+        // Categorized rage bait prompts (short for quick zingers)
+        const prompts = {
+            food: [
+                "Pineapple on pizza is a crime. Defend it, losers.",
+                "Veganism is a scam. Meat rules. Fight me.",
+                "Avocado toast is for basic millennials. Prove it’s not.",
+                "Ketchup on steak? You’re a monster. Argue."
+            ],
+            tech: [
+                "Electric cars suck. Gas is king. Prove me wrong.",
+                "TikTok is brain-dead. Delete it. Dare you.",
+                "Crypto’s the future. Fiat fans are fossils. Fight back.",
+                "Remote work is lazy. Offices only. Change my mind."
+            ],
+            pop: [
+                "Marvel’s CGI slop. DC’s better. Cry about it.",
+                "K-pop is just noise. Stans, prove it’s music.",
+                "Influencers are internet trash. Defend them.",
+                "Reality TV rots brains. Fans, argue back."
+            ],
+            sports: [
+                "Baseball’s DH rule is cheating. AL fans, cope.",
+                "Soccer’s boring. Football’s real. Fight me.",
+                "LeBron’s no Jordan. GOAT debate, go.",
+                "Esports isn’t sport. It’s just clicking. Argue."
+            ]
+        };
+        
+        // Combine all prompts for 'all' category
+        const allPrompts = Object.values(prompts).flat();
+        
+        // Rate limiting
+        let lastCall = 0;
+        const cooldown = 2000; // 2 seconds between calls
+        
+        // Personal roast generation
+        async function generatePersonalRoast() {
+            const now = Date.now();
+            if (now - lastCall < cooldown) {
+                alert('Chill! One roast every 2 seconds.');
+                return;
+            }
+            lastCall = now;
+            
+            const personalContext = document.getElementById('personalContext').value.trim();
+            if (!personalContext) {
+                alert('Enter a life situation to roast!');
+                return;
+            }
+            
+            document.getElementById('promptDisplay').textContent = personalContext;
+            document.getElementById('responseDisplay').innerHTML = '<div class="loading">Llama 3.3 roasts your drama... 🔥</div>';
+            document.getElementById('rageMeterFill').style.width = '0%';
+            
+            try {
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${API_KEY}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        model: MODEL,
+                        messages: [
+                            { role: 'system', content: 'You’re RageBaitBot on Llama 3.3. Roast the people in the user’s life situation with a short, savage, one-sided take. Be witty, brutal, target the people involved, and end with a taunt. Max 150 words.' },
+                            { role: 'user', content: `Roast the people in this situation: ${personalContext}` }
+                        ],
+                        max_tokens: 200,
+                        temperature: 0.9
+                    })
+                });
+                
+                if (!response.ok) {
+                    let errorMsg = `API error: ${response.status}`;
+                    if (response.status === 401) errorMsg = 'Invalid key. Regenerate at https://console.groq.com/keys.';
+                    if (response.status === 400) errorMsg = 'Bad request (check model ID).';
+                    if (response.status === 429) errorMsg = 'Rate limit hit (300K TPM). Wait.';
+                    throw new Error(errorMsg);
+                }
+                
+                const data = await response.json();
+                const aiResponse = data.choices[0].message.content;
+                document.getElementById('responseDisplay').textContent = aiResponse;
+                
+                // Fake rage meter animation
+                const rageScore = Math.floor(Math.random() * 41) + 60; // 60-100%
+                document.getElementById('rageMeterFill').style.width = `${rageScore}%`;
+            } catch (error) {
+                document.getElementById('responseDisplay').innerHTML = `<div class="error">Failed: ${error.message}. Check console (F12).</div>`;
+                document.getElementById('rageMeterFill').style.width = '0%';
+            }
+        }
+        
+        // Main rage generation (custom scenario or random)
+        async function generateRage() {
+            const now = Date.now();
+            if (now - lastCall < cooldown) {
+                alert('Chill! One rage every 2 seconds.');
+                return;
+            }
+            lastCall = now;
+            
+            const personalContext = document.getElementById('personalContext').value.trim();
+            if (personalContext) {
+                generatePersonalRoast(); // Prioritize personal context
+                return;
+            }
+            
+            const customScenario = document.getElementById('customScenario').value.trim();
+            let selectedPrompt;
+            if (customScenario) {
+                selectedPrompt = customScenario;
+            } else {
+                const category = document.getElementById('categorySelect').value;
+                const promptList = category === 'all' ? allPrompts : prompts[category];
+                selectedPrompt = promptList[Math.floor(Math.random() * promptList.length)];
+            }
+            
+            document.getElementById('promptDisplay').textContent = selectedPrompt;
+            document.getElementById('responseDisplay').innerHTML = '<div class="loading">Llama 3.3 rages... 🔥</div>';
+            document.getElementById('rageMeterFill').style.width = '0%';
+            
+            try {
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${API_KEY}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        model: MODEL,
+                        messages: [
+                            { role: 'system', content: 'You’re RageBaitBot on Llama 3.3. Roast the given scenario with a short, savage, one-sided take to spark fights. Be witty, biased, and end with a taunt. Max 150 words.' },
+                            { role: 'user', content: `Roast this: ${selectedPrompt}` }
+                        ],
+                        max_tokens: 200,
+                        temperature: 0.9
+                    })
+                });
+                
+                if (!response.ok) {
+                    let errorMsg = `API error: ${response.status}`;
+                    if (response.status === 401) errorMsg = 'Invalid key. Regenerate at https://console.groq.com/keys.';
+                    if (response.status === 400) errorMsg = 'Bad request (check model ID).';
+                    if (response.status === 429) errorMsg = 'Rate limit hit (300K TPM). Wait.';
+                    throw new Error(errorMsg);
+                }
+                
+                const data = await response.json();
+                const aiResponse = data.choices[0].message.content;
+                document.getElementById('responseDisplay').textContent = aiResponse;
+                
+                // Fake rage meter animation
+                const rageScore = Math.floor(Math.random() * 41) + 60; // 60-100%
+                document.getElementById('rageMeterFill').style.width = `${rageScore}%`;
+            } catch (error) {
+                document.getElementById('responseDisplay').innerHTML = `<div class="error">Failed: ${error.message}. Check console (F12).</div>`;
+                document.getElementById('rageMeterFill').style.width = '0%';
+            }
+        }
+        
+        // Share on X
+        function shareResponse() {
+            const prompt = document.getElementById('promptDisplay').textContent;
+            const response = document.getElementById('responseDisplay').textContent;
+            if (!prompt || !response || response.includes('Error')) {
+                alert('Generate rage first!');
+                return;
+            }
+            const tweetText = `${prompt}\n\nLlama 3.3: "${response.substring(0, 80)}..."\n\nArgue! #RageBaitAI`;
+            const url = `https://x.com/intent/tweet?text=${encodeURIComponent(tweetText)}`;
+            window.open(url, '_blank');
+        }
+        
+        // Copy to Clipboard
+        function copyResponse() {
+            const prompt = document.getElementById('promptDisplay').textContent;
+            const response = document.getElementById('responseDisplay').textContent;
+            if (!prompt || !response || response.includes('Error')) {
+                alert('Generate rage first!');
+                return;
+            }
+            const textToCopy = `${prompt}\n\n${response}\n\n#RageBaitAI (Llama 3.3)`;
+            navigator.clipboard.writeText(textToCopy).then(() => {
+                alert('Rage copied!');
+            }).catch(() => {
+                alert('Copy failed. Try again.');
+            });
+        }
+        
+        // Counter mode
+        function toggleCounter() {
+            const section = document.getElementById('counterSection');
+            section.style.display = section.style.display === 'none' ? 'block' : 'none';
+        }
+        
+        async function generateCounter() {
+            const userInput = document.getElementById('counterInput').value.trim();
+            if (!userInput) {
+                alert('Type a comeback first!');
+                return;
+            }
+            
+            const now = Date.now();
+            if (now - lastCall < cooldown) {
+                alert('Cooldown: one comeback per 2 seconds.');
+                return;
+            }
+            lastCall = now;
+            
+            document.getElementById('counterResponse').innerHTML = '<div class="loading">Llama 3.3 roasts...</div>';
+            
+            try {
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${API_KEY}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        model: MODEL,
+                        messages: [
+                            { role: 'system', content: 'You’re RageBaitBot on Llama 3.3. Hit back with a short, savage, trollish comeback. Escalate, stay snarky, end with a zinger. Max 100 words.' },
+                            { role: 'user', content: `User comeback: ${userInput}. Crush them!` }
+                        ],
+                        max_tokens: 150,
+                        temperature: 1.0
+                    })
+                });
+                
+                if (!response.ok) {
+                    let errorMsg = `API error: ${response.status}`;
+                    if (response.status === 401) errorMsg = 'Invalid key. Regenerate at https://console.groq.com/keys.';
+                    if (response.status === 400) errorMsg = 'Bad request (check model ID).';
+                    if (response.status === 429) errorMsg = 'Rate limit hit (300K TPM). Wait.';
+                    throw new Error(errorMsg);
+                }
+                
+                const data = await response.json();
+                const comeback = data.choices[0].message.content;
+                document.getElementById('counterResponse').innerHTML = `<strong>AI Comeback:</strong><br>${comeback}`;
+                document.getElementById('counterInput').value = '';
+            } catch (error) {
+                document.getElementById('counterResponse').innerHTML = `<div class="error">Failed: ${error.message}. Check console (F12).</div>`;
+            }
+        }
+        
+        // Auto-generate on load
+        window.onload = () => generateRage();
+    </script>
+</body>
+</html>
