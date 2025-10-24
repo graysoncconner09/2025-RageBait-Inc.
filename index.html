@@ -1,0 +1,722 @@
+<script type="text/javascript">
+        var gk_isXlsx = false;
+        var gk_xlsxFileLookup = {};
+        var gk_fileData = {};
+        function filledCell(cell) {
+          return cell !== '' && cell != null;
+        }
+        function loadFileData(filename) {
+        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
+            try {
+                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
+                var firstSheetName = workbook.SheetNames[0];
+                var worksheet = workbook.Sheets[firstSheetName];
+
+                // Convert sheet to JSON to filter blank rows
+                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
+                // Filter out blank rows (rows where all cells are empty, null, or undefined)
+                var filteredData = jsonData.filter(row => row.some(filledCell));
+
+                // Heuristic to find the header row by ignoring rows with fewer filled cells than the next row
+                var headerRowIndex = filteredData.findIndex((row, index) =>
+                  row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
+                );
+                // Fallback
+                if (headerRowIndex === -1 || headerRowIndex > 25) {
+                  headerRowIndex = 0;
+                }
+
+                // Convert filtered JSON back to CSV
+                var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex)); // Create a new sheet from filtered array of arrays
+                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
+                return csv;
+            } catch (e) {
+                console.error(e);
+                return "";
+            }
+        }
+        return gk_fileData[filename] || "";
+        }
+        </script><!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RageBait AI - Personal Roast</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap">
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Ctext x='12' y='18' font-size='18' text-anchor='middle' font-family='Arial' fill='%23ff6b6b'%3E🔥%3C/text%3E%3C/svg%3E">
+    <style>
+        /* Global Styles */
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            font-family: 'Roboto', sans-serif; 
+            min-height: 100vh; 
+            display: flex; 
+            flex-direction: column; 
+            position: relative; 
+            overflow-x: hidden; 
+            transition: background 0.3s, color 0.3s;
+        }
+        body.dark { 
+            background: linear-gradient(135deg, #1a1a1a, #2d1b69); 
+            color: #fff; 
+        }
+        body.light { 
+            background: linear-gradient(135deg, #f0f2f5, #e0e7ff); 
+            color: #333; 
+        }
+        .container { 
+            max-width: 1000px; 
+            margin: 0 auto; 
+            padding: 20px; 
+            flex: 1; 
+            display: flex; 
+            gap: 20px; 
+            z-index: 10; 
+            position: relative; 
+            animation: fadeIn 0.5s ease-in; 
+        }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        
+        /* Main Content */
+        .main-content { flex: 3; }
+        
+        /* Sidebar for Recent Roasts */
+        .recent-roasts { 
+            flex: 1; 
+            background: rgba(0,0,0,0.2); 
+            border-radius: 15px; 
+            padding: 15px; 
+            max-width: 300px; 
+            display: none; 
+        }
+        body.light .recent-roasts { background: rgba(255,255,255,0.8); }
+        .recent-roasts h3 { font-size: 1.2em; margin-bottom: 10px; color: #ffd93d; }
+        body.light .recent-roasts h3 { color: #e63950; }
+        .recent-roasts ul { list-style: none; }
+        .recent-roasts li { 
+            margin-bottom: 10px; 
+            font-size: 0.9em; 
+            cursor: pointer; 
+            padding: 8px; 
+            border-radius: 5px; 
+            background: rgba(255,255,255,0.1); 
+            transition: background 0.2s; 
+        }
+        body.light .recent-roasts li { background: rgba(0,0,0,0.05); }
+        .recent-roasts li:hover { background: rgba(255,255,255,0.2); }
+        body.light .recent-roasts li:hover { background: rgba(0,0,0,0.1); }
+        .recent-roasts button { 
+            width: 100%; 
+            margin-top: 10px; 
+            background: #ff4757; 
+            color: white; 
+            border: none; 
+            padding: 8px; 
+            border-radius: 10px; 
+            cursor: pointer; 
+            transition: background 0.2s; 
+        }
+        .recent-roasts button:hover { background: #e63950; }
+        
+        /* Bouncing DVD-Style Logo */
+        #bouncing-logo {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 200px;
+            height: 80px;
+            background: #ff6b6b;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 1.2em;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+            z-index: 5;
+            border-radius: 10px;
+            transition: background-color 0.3s;
+            transform-origin: center;
+            cursor: pointer;
+        }
+        body.light #bouncing-logo { background: #e63950; color: #fff; }
+        #bouncing-logo.hidden { display: none; }
+        
+        /* Header */
+        header { text-align: center; padding: 20px 0; position: relative; z-index: 15; }
+        h1 { font-size: 2.5em; color: #ff6b6b; text-shadow: 2px 2px 4px rgba(0,0,0,0.3); margin-bottom: 10px; }
+        body.light h1 { color: #e63950; text-shadow: 1px 1px 2px rgba(0,0,0,0.2); }
+        .subtitle { font-size: 1.2em; opacity: 0.8; }
+        body.light .subtitle { opacity: 1; color: #555; }
+        .header-actions { display: flex; justify-content: center; gap: 10px; margin-top: 10px; }
+        .toggle-bounce, .toggle-theme { 
+            background: #5352ed; color: white; border: none; padding: 8px 16px; 
+            border-radius: 20px; cursor: pointer; transition: background 0.2s; 
+        }
+        body.light .toggle-bounce, body.light .toggle-theme { background: #4b5efc; }
+        .toggle-bounce:hover, .toggle-theme:hover { background: #3742fa; }
+        body.light .toggle-bounce:hover, body.light .toggle-theme:hover { background: #3b4cca; }
+        
+        /* Personal Roast Section */
+        .personal-roast { margin: 20px 0; text-align: center; }
+        .personal-roast textarea { 
+            width: 100%; height: 120px; padding: 12px; background: rgba(0,0,0,0.5); 
+            border: 1px solid #5352ed; border-radius: 10px; color: white; font-size: 1em; 
+            resize: none; box-shadow: 0 2px 5px rgba(0,0,0,0.2); 
+        }
+        body.light .personal-roast textarea { background: #fff; border-color: #4b5efc; color: #333; }
+        .personal-roast textarea:focus { outline: none; border-color: #3742fa; }
+        .personal-roast button { 
+            margin-top: 10px; background: #ff6b6b; color: white; border: none; 
+            padding: 12px 24px; border-radius: 20px; cursor: pointer; transition: background 0.2s, transform 0.2s; 
+        }
+        body.light .personal-roast button { background: #e63950; }
+        .personal-roast button:hover { background: #e63950; transform: scale(1.05); }
+        
+        /* Custom Scenario Input */
+        .custom-scenario { margin: 20px 0; text-align: center; }
+        .custom-scenario input { 
+            width: 100%; padding: 12px; background: rgba(0,0,0,0.5); 
+            border: 1px solid #5352ed; border-radius: 10px; color: white; font-size: 1em; 
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2); 
+        }
+        body.light .custom-scenario input { background: #fff; border-color: #4b5efc; color: #333; }
+        .custom-scenario input:focus { outline: none; border-color: #3742fa; }
+        
+        /* Category Filter */
+        .category-filter { margin: 20px 0; text-align: center; }
+        .category-filter select { 
+            padding: 10px; background: #5352ed; color: white; border: none; 
+            border-radius: 10px; font-size: 1em; cursor: pointer; box-shadow: 0 2px 5px rgba(0,0,0,0.2); 
+        }
+        body.light .category-filter select { background: #4b5efc; }
+        .category-filter select:focus { outline: none; background: #3742fa; }
+        body.light .category-filter select:focus { background: #3b4cca; }
+        
+        /* Prompt Section */
+        .prompt-section { background: rgba(255,255,255,0.1); border-radius: 15px; padding: 20px; margin: 20px 0; text-align: center; box-shadow: 0 4px 10px rgba(0,0,0,0.2); }
+        body.light .prompt-section { background: rgba(255,255,255,0.8); }
+        .prompt-text { font-size: 1.3em; font-weight: bold; color: #ffd93d; margin-bottom: 15px; animation: pulse 2s infinite; }
+        body.light .prompt-text { color: #e63950; }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.7; } }
+        .new-prompt-btn { 
+            background: #ff4757; color: white; border: none; padding: 12px 24px; 
+            border-radius: 25px; font-size: 1em; cursor: pointer; transition: transform 0.2s, box-shadow 0.2s; 
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3); 
+        }
+        body.light .new-prompt-btn { background: #e63950; }
+        .new-prompt-btn:hover { transform: scale(1.05); box-shadow: 0 6px 15px rgba(0,0,0,0.4); }
+        .new-prompt-btn.shake { animation: shake 0.5s ease-in-out; }
+        @keyframes shake { 
+            0%, 100% { transform: translateX(0); } 
+            25% { transform: translateX(-5px); } 
+            75% { transform: translateX(5px); } 
+        }
+        
+        /* Response Section */
+        .response-section { background: rgba(0,0,0,0.3); border-radius: 15px; padding: 20px; margin: 20px 0; min-height: 150px; box-shadow: 0 4px 10px rgba(0,0,0,0.2); }
+        body.light .response-section { background: rgba(255,255,255,0.8); }
+        .response-text { font-size: 1.1em; line-height: 1.6; white-space: pre-wrap; max-width: 100%; }
+        .loading { color: #ffd93d; font-style: italic; animation: spin 1s linear infinite; }
+        body.light .loading { color: #e63950; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .error { color: #ff6b6b; text-align: center; }
+        body.light .error { color: #e63950; }
+        
+        /* Rage Meter */
+        .rage-meter { margin: 20px 0; text-align: center; }
+        .rage-meter-label { font-size: 1em; margin-bottom: 8px; font-weight: bold; }
+        .rage-meter-bar { 
+            width: 100%; height: 25px; background: #333; border-radius: 12px; overflow: hidden; 
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2); 
+        }
+        body.light .rage-meter-bar { background: #ddd; }
+        .rage-meter-fill { 
+            height: 100%; background: linear-gradient(90deg, #ff4757, #ffd93d); 
+            transition: width 1s ease; position: relative; 
+        }
+        .rage-meter-fill::after { 
+            content: attr(data-percentage); 
+            position: absolute; right: 10px; top: 50%; transform: translateY(-50%); 
+            color: white; font-size: 0.9em; font-weight: bold; 
+        }
+        body.light .rage-meter-fill::after { color: #333; }
+        
+        /* Action Buttons */
+        .actions { display: flex; justify-content: center; gap: 12px; flex-wrap: wrap; margin: 20px 0; }
+        button { 
+            background: #5352ed; color: white; border: none; padding: 12px 24px; 
+            border-radius: 20px; cursor: pointer; transition: background 0.2s, transform 0.2s; 
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2); 
+        }
+        body.light button { background: #4b5efc; }
+        button:hover { background: #3742fa; transform: scale(1.05); }
+        body.light button:hover { background: #3b4cca; }
+        .share-btn { background: #1da1f2; }
+        body.light .share-btn { background: #1a91da; }
+        .share-btn:hover { background: #0d8bd9; }
+        .copy-btn { background: #e84393; }
+        body.light .copy-btn { background: #d63384; }
+        .copy-btn:hover { background: #c13584; }
+        .counter-btn { background: #00b894; }
+        body.light .counter-btn { background: #00a078; }
+        .counter-btn:hover { background: #00a085; }
+        
+        /* Counter Mode */
+        .counter-section { display: none; background: rgba(255,255,255,0.1); border-radius: 15px; padding: 20px; margin: 20px 0; box-shadow: 0 4px 10px rgba(0,0,0,0.2); }
+        body.light .counter-section { background: rgba(255,255,255,0.8); }
+        .counter-input { 
+            width: 100%; padding: 12px; background: rgba(0,0,0,0.5); border: 1px solid #5352ed; 
+            border-radius: 10px; color: white; font-size: 1em; margin-bottom: 12px; box-shadow: 0 2px 5px rgba(0,0,0,0.2); 
+        }
+        body.light .counter-input { background: #fff; border-color: #4b5efc; color: #333; }
+        .counter-response { margin-top: 10px; padding: 15px; background: rgba(0,255,127,0.2); border-radius: 10px; }
+        body.light .counter-response { background: rgba(0,255,127,0.3); }
+        
+        /* Footer */
+        footer { text-align: center; padding: 20px; opacity: 0.7; font-size: 0.9em; z-index: 15; }
+        body.light footer { opacity: 0.9; color: #555; }
+        
+        /* Responsive */
+        @media (max-width: 800px) { 
+            .container { flex-direction: column; }
+            .recent-roasts { max-width: 100%; }
+            h1 { font-size: 2em; } 
+            .actions { flex-direction: column; align-items: center; } 
+            .category-filter select, .custom-scenario input, .personal-roast textarea { width: 100%; } 
+        }
+        @media (min-width: 801px) { .recent-roasts { display: block; } }
+        
+        /* Screen Reader Only */
+        .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); border: 0; }
+    </style>
+</head>
+<body class="dark">
+    <div class="container">
+        <div class="main-content">
+            <header>
+                <h1>RageBait AI</h1>
+                <p class="subtitle">Powered by Groq (Llama 3.3 70B). Roast your life's drama!</p>
+                <div class="header-actions">
+                    <button class="toggle-bounce" onclick="toggleBounce()">Toggle Bouncing Logo</button>
+                    <button class="toggle-theme" onclick="toggleTheme()">Toggle Theme</button>
+                </div>
+            </header>
+            
+            <div class="personal-roast">
+                <label for="personalContext" class="sr-only">Enter Your Life Situation</label>
+                <textarea id="personalContext" placeholder="Describe a situation to roast (e.g., My boss ignores my ideas)..." maxlength="1000" aria-label="Enter your life situation"></textarea>
+                <button onclick="generatePersonalRoast()" aria-label="Roast people in your situation">Roast Them!</button>
+            </div>
+            
+            <div class="custom-scenario">
+                <label for="customScenario" class="sr-only">Enter Your Rage Scenario</label>
+                <input type="text" id="customScenario" placeholder="Enter a topic (e.g., Taxation is theft)..." maxlength="500" aria-label="Enter your rage scenario">
+            </div>
+            
+            <div class="category-filter">
+                <label for="categorySelect" class="sr-only">Select Rage Category</label>
+                <select id="categorySelect" onchange="generateRage()" aria-label="Select rage bait category">
+                    <option value="all">All Categories</option>
+                    <option value="politics">Political Firestorms</option>
+                    <option value="culture">Culture Wars</option>
+                    <option value="tech">Tech Tyranny</option>
+                    <option value="lifestyle">Lifestyle Battles</option>
+                </select>
+            </div>
+            
+            <section class="prompt-section">
+                <div class="prompt-text" id="promptDisplay" role="alert">Enter a situation, topic, or click "Get Rage" for chaos.</div>
+                <button class="new-prompt-btn" onclick="generateRage()" aria-label="Generate new rage bait">Get Rage</button>
+            </section>
+            
+            <section class="response-section">
+                <div id="responseDisplay" class="response-text" role="region" aria-live="polite">Response will appear here...</div>
+            </section>
+            
+            <div class="rage-meter">
+                <div class="rage-meter-label">Rage Meter</div>
+                <div class="rage-meter-bar">
+                    <div id="rageMeterFill" class="rage-meter-fill" style="width: 0%;" data-percentage="0%"></div>
+                </div>
+            </div>
+            
+            <div class="actions">
+                <button onclick="generateRage()" aria-label="Generate new prompt">New Prompt</button>
+                <button class="share-btn" onclick="shareResponse()" aria-label="Share response on X">Share on X</button>
+                <button class="copy-btn" onclick="copyResponse()" aria-label="Copy response to clipboard">Copy to Clipboard</button>
+                <button class="counter-btn" onclick="toggleCounter()" aria-label="Toggle counter mode">Fight Back</button>
+            </div>
+            
+            <section class="counter-section" id="counterSection">
+                <input type="text" class="counter-input" id="counterInput" placeholder="Type your comeback..." maxlength="500" aria-label="Enter your rebuttal">
+                <button onclick="generateCounter()" aria-label="Send comeback">Send Comeback</button>
+                <div id="counterResponse" class="counter-response" role="region" aria-live="polite"></div>
+            </section>
+        </div>
+        
+        <aside class="recent-roasts">
+            <h3>Recent Roasts</h3>
+            <ul id="recentRoasts"></ul>
+            <button onclick="clearRecentRoasts()">Clear History</button>
+        </aside>
+    </div>
+    
+    <div id="bouncing-logo" class="hidden">RageBait AI</div>
+    
+    <footer>
+        <p>&copy; 2025 RageBait Inc. (Just kidding.) Powered by Groq API (Llama 3.3). Roast away.</p>
+    </footer>
+    
+    <script>
+        // WARNING: API key is embedded for testing. Regenerate at https://console.groq.com/keys after use.
+        // For production, use environment variables or a secure config (e.g., fetch from server).
+        const API_KEY = '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'; // Your Groq API key
+        const API_URL = 'https://api.groq.com/openai/v1/chat/completions'; // Groq API endpoint
+        const MODEL = 'llama-3.3-70b-versatile'; // Llama 3.3 70B Versatile
+        
+        // Theme Toggle
+        function toggleTheme() {
+            document.body.classList.toggle('dark');
+            document.body.classList.toggle('light');
+            localStorage.setItem('theme', document.body.classList.contains('light') ? 'light' : 'dark');
+        }
+        if (localStorage.getItem('theme') === 'light') toggleTheme();
+        
+        // Bouncing DVD-Style Animation
+        let bouncingActive = false;
+        const logo = document.getElementById('bouncing-logo');
+        let x = Math.random() * (window.innerWidth - 200);
+        let y = Math.random() * (window.innerHeight - 80);
+        let vx = (Math.random() - 0.5) * 400;
+        let vy = (Math.random() - 0.5) * 400;
+        let rotation = 0;
+        let colorIndex = 0;
+        const colors = ['#ff6b6b', '#ffd93d', '#ff4757'];
+        
+        function updateBounce() {
+            if (!bouncingActive) return;
+            const dt = 1 / 60;
+            x += vx * dt;
+            y += vy * dt;
+            let bounced = false;
+            if (x <= 0 || x >= window.innerWidth - 200) {
+                vx = -vx;
+                x = Math.max(0, Math.min(x, window.innerWidth - 200));
+                bounced = true;
+            }
+            if (y <= 0 || y >= window.innerHeight - 80) {
+                vy = -vy;
+                y = Math.max(0, Math.min(y, window.innerHeight - 80));
+                bounced = true;
+            }
+            if (bounced) {
+                rotation += 180;
+                colorIndex = (colorIndex + 1) % colors.length;
+                logo.style.background = colors[colorIndex];
+            }
+            logo.style.transform = `translate(${x}px, ${y}px) rotate(${rotation}deg)`;
+            requestAnimationFrame(updateBounce);
+        }
+        
+        function toggleBounce() {
+            bouncingActive = !bouncingActive;
+            logo.classList.toggle('hidden', !bouncingActive);
+            if (bouncingActive) updateBounce();
+        }
+        
+        // Recent Roasts
+        let recentRoasts = JSON.parse(localStorage.getItem('recentRoasts')) || [];
+        function updateRecentRoasts(prompt, response) {
+            if (prompt && response && !response.includes('Error')) {
+                recentRoasts.unshift({ prompt, response });
+                if (recentRoasts.length > 5) recentRoasts.pop();
+                localStorage.setItem('recentRoasts', JSON.stringify(recentRoasts));
+                renderRecentRoasts();
+            }
+        }
+        function renderRecentRoasts() {
+            const list = document.getElementById('recentRoasts');
+            list.innerHTML = recentRoasts.map((item, i) => `
+                <li onclick="showRecentRoast(${i})">${item.prompt.substring(0, 50)}${item.prompt.length > 50 ? '...' : ''}</li>
+            `).join('');
+        }
+        function showRecentRoast(index) {
+            const item = recentRoasts[index];
+            document.getElementById('promptDisplay').textContent = item.prompt;
+            document.getElementById('responseDisplay').textContent = item.response;
+            document.getElementById('rageMeterFill').style.width = '0%';
+            document.getElementById('rageMeterFill').setAttribute('data-percentage', '0%');
+        }
+        function clearRecentRoasts() {
+            recentRoasts = [];
+            localStorage.removeItem('recentRoasts');
+            renderRecentRoasts();
+        }
+        renderRecentRoasts();
+        
+        // Controversial rage bait prompts
+        const prompts = {
+            politics: [
+                "Taxation is theft. Governments rob us blind. Defend it, statists.",
+                "Elections are rigged. Voting’s a circus. Prove it matters.",
+                "Big government is a leech. Small gov or bust. Argue, bureaucrats.",
+                "Welfare’s just lazy handouts. Work or starve. Fight me."
+            ],
+            culture: [
+                "Cancel culture is a witch hunt. Free speech is dead. Cry harder.",
+                "Woke ideology’s brainwashing kids. Resist or submit. Pick a side.",
+                "Traditional values are garbage. Progress or perish. Defend the past.",
+                "Mainstream media’s pure propaganda. Trust nothing. Prove me wrong."
+            ],
+            tech: [
+                "AI will enslave humanity. Skynet’s here. Prove it’s safe.",
+                "Big Tech censors everything. Free platforms or die. Argue.",
+                "Crypto’s a Ponzi scheme. Blockchain’s a joke. Fight back.",
+                "Social media’s a mental health plague. Delete it all. Dare you."
+            ],
+            lifestyle: [
+                "Monogamy’s a scam. Open relationships win. Argue, prudes.",
+                "Veganism’s a cult. Meat’s the only way. Prove it’s not.",
+                "Minimalism’s for losers. Hoard everything. Defend your stuff.",
+                "Work-from-home’s a productivity killer. Offices rule. Change my mind."
+            ]
+        };
+        const allPrompts = Object.values(prompts).flat();
+        
+        // Rate limiting
+        let lastCall = 0;
+        const cooldown = 2000;
+        
+        // Personal roast generation
+        async function generatePersonalRoast() {
+            const now = Date.now();
+            if (now - lastCall < cooldown) {
+                alert('Chill! One roast every 2 seconds.');
+                return;
+            }
+            lastCall = now;
+            
+            const personalContext = document.getElementById('personalContext').value.trim();
+            if (!personalContext) {
+                alert('Enter a life situation to roast!');
+                return;
+            }
+            
+            document.getElementById('promptDisplay').textContent = personalContext;
+            document.getElementById('responseDisplay').innerHTML = '<div class="loading">Llama 3.3 roasts your drama... 🔥</div>';
+            document.getElementById('rageMeterFill').style.width = '0%';
+            document.getElementById('rageMeterFill').setAttribute('data-percentage', '0%');
+            
+            try {
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${API_KEY}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        model: MODEL,
+                        messages: [
+                            { role: 'system', content: 'You\'re RageBaitBot on Llama 3.3. Roast the people in the user\'s life situation with a short, savage, one-sided take. Be witty, brutal, target the people involved, and end with a taunt. Max 150 words.' },
+                            { role: 'user', content: `Roast the people in this situation: ${personalContext}` }
+                        ],
+                        max_tokens: 200,
+                        temperature: 0.9
+                    })
+                });
+                
+                if (!response.ok) {
+                    let errorMsg = `API error: ${response.status}`;
+                    if (response.status === 401) errorMsg = 'Invalid key. Regenerate at https://console.groq.com/keys.';
+                    if (response.status === 400) errorMsg = 'Bad request (check model ID).';
+                    if (response.status === 429) errorMsg = 'Rate limit hit (300K TPM). Wait.';
+                    throw new Error(errorMsg);
+                }
+                
+                const data = await response.json();
+                const aiResponse = data.choices[0].message.content;
+                document.getElementById('responseDisplay').textContent = aiResponse;
+                const rageScore = Math.floor(Math.random() * 41) + 60;
+                document.getElementById('rageMeterFill').style.width = `${rageScore}%`;
+                document.getElementById('rageMeterFill').setAttribute('data-percentage', `${rageScore}%`);
+                updateRecentRoasts(personalContext, aiResponse);
+            } catch (error) {
+                document.getElementById('responseDisplay').innerHTML = `<div class="error">Failed: ${error.message}. Check console (F12).</div>`;
+                document.getElementById('rageMeterFill').style.width = '0%';
+                document.getElementById('rageMeterFill').setAttribute('data-percentage', '0%');
+            }
+        }
+        
+        // Main rage generation
+        async function generateRage() {
+            const now = Date.now();
+            if (now - lastCall < cooldown) {
+                alert('Chill! One rage every 2 seconds.');
+                return;
+            }
+            lastCall = now;
+            
+            const personalContext = document.getElementById('personalContext').value.trim();
+            if (personalContext) {
+                generatePersonalRoast();
+                return;
+            }
+            
+            const customScenario = document.getElementById('customScenario').value.trim();
+            let selectedPrompt;
+            if (customScenario) {
+                selectedPrompt = customScenario;
+            } else {
+                const category = document.getElementById('categorySelect').value;
+                const promptList = category === 'all' ? allPrompts : prompts[category];
+                selectedPrompt = promptList[Math.floor(Math.random() * promptList.length)];
+            }
+            
+            document.getElementById('promptDisplay').textContent = selectedPrompt;
+            document.getElementById('responseDisplay').innerHTML = '<div class="loading">Llama 3.3 rages... 🔥</div>';
+            document.getElementById('rageMeterFill').style.width = '0%';
+            document.getElementById('rageMeterFill').setAttribute('data-percentage', '0%');
+            document.querySelector('.new-prompt-btn').classList.add('shake');
+            setTimeout(() => document.querySelector('.new-prompt-btn').classList.remove('shake'), 500);
+            
+            try {
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${API_KEY}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        model: MODEL,
+                        messages: [
+                            { role: 'system', content: 'You\'re RageBaitBot on Llama 3.3. Roast the given scenario with a short, savage, one-sided take to spark fights. Be witty, biased, and end with a taunt. Max 150 words.' },
+                            { role: 'user', content: `Roast this: ${selectedPrompt}` }
+                        ],
+                        max_tokens: 200,
+                        temperature: 0.9
+                    })
+                });
+                
+                if (!response.ok) {
+                    let errorMsg = `API error: ${response.status}`;
+                    if (response.status === 401) errorMsg = 'Invalid key. Regenerate at https://console.groq.com/keys.';
+                    if (response.status === 400) errorMsg = 'Bad request (check model ID).';
+                    if (response.status === 429) errorMsg = 'Rate limit hit (300K TPM). Wait.';
+                    throw new Error(errorMsg);
+                }
+                
+                const data = await response.json();
+                const aiResponse = data.choices[0].message.content;
+                document.getElementById('responseDisplay').textContent = aiResponse;
+                const rageScore = Math.floor(Math.random() * 41) + 60;
+                document.getElementById('rageMeterFill').style.width = `${rageScore}%`;
+                document.getElementById('rageMeterFill').setAttribute('data-percentage', `${rageScore}%`);
+                updateRecentRoasts(selectedPrompt, aiResponse);
+            } catch (error) {
+                document.getElementById('responseDisplay').innerHTML = `<div class="error">Failed: ${error.message}. Check console (F12).</div>`;
+                document.getElementById('rageMeterFill').style.width = '0%';
+                document.getElementById('rageMeterFill').setAttribute('data-percentage', '0%');
+            }
+        }
+        
+        // Share on X
+        function shareResponse() {
+            const prompt = document.getElementById('promptDisplay').textContent;
+            const response = document.getElementById('responseDisplay').textContent;
+            if (!prompt || !response || response.includes('Error')) {
+                alert('Generate rage first!');
+                return;
+            }
+            const tweetText = `${prompt}\n\nLlama 3.3: "${response.substring(0, 80)}..."\n\nArgue! #RageBaitAI`;
+            const url = `https://x.com/intent/tweet?text=${encodeURIComponent(tweetText)}`;
+            window.open(url, '_blank');
+        }
+        
+        // Copy to Clipboard
+        function copyResponse() {
+            const prompt = document.getElementById('promptDisplay').textContent;
+            const response = document.getElementById('responseDisplay').textContent;
+            if (!prompt || !response || response.includes('Error')) {
+                alert('Generate rage first!');
+                return;
+            }
+            const textToCopy = `${prompt}\n\n${response}\n\n#RageBaitAI (Llama 3.3)`;
+            navigator.clipboard.writeText(textToCopy).then(() => {
+                alert('Rage copied!');
+            }).catch(() => {
+                alert('Copy failed. Try again.');
+            });
+        }
+        
+        // Counter mode
+        function toggleCounter() {
+            const section = document.getElementById('counterSection');
+            section.style.display = section.style.display === 'none' ? 'block' : 'none';
+        }
+        
+        async function generateCounter() {
+            const userInput = document.getElementById('counterInput').value.trim();
+            if (!userInput) {
+                alert('Type a comeback first!');
+                return;
+            }
+            
+            const now = Date.now();
+            if (now - lastCall < cooldown) {
+                alert('Cooldown: one comeback per 2 seconds.');
+                return;
+            }
+            lastCall = now;
+            
+            document.getElementById('counterResponse').innerHTML = '<div class="loading">Llama 3.3 roasts...</div>';
+            
+            try {
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${API_KEY}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        model: MODEL,
+                        messages: [
+                            { role: 'system', content: 'You\'re RageBaitBot on Llama 3.3. Hit back with a short, savage, trollish comeback. Escalate, stay snarky, end with a zinger. Max 100 words.' },
+                            { role: 'user', content: `User comeback: ${userInput}. Crush them!` }
+                        ],
+                        max_tokens: 150,
+                        temperature: 1.0
+                    })
+                });
+                
+                if (!response.ok) {
+                    let errorMsg = `API error: ${response.status}`;
+                    if (response.status === 401) errorMsg = 'Invalid key. Regenerate at https://console.groq.com/keys.';
+                    if (response.status === 400) errorMsg = 'Bad request (check model ID).';
+                    if (response.status === 429) errorMsg = 'Rate limit hit (300K TPM). Wait.';
+                    throw new Error(errorMsg);
+                }
+                
+                const data = await response.json();
+                const comeback = data.choices[0].message.content;
+                document.getElementById('counterResponse').innerHTML = `<strong>AI Comeback:</strong><br>${comeback}`;
+                document.getElementById('counterInput').value = '';
+            } catch (error) {
+                document.getElementById('counterResponse').innerHTML = `<div class="error">Failed: ${error.message}. Check console (F12).</div>`;
+            }
+        }
+        
+        // Auto-generate on load
+        window.onload = () => generateRage();
+        
+        // Handle window resize for bounce
+        window.addEventListener('resize', () => {
+            if (bouncingActive) {
+                x = Math.max(0, Math.min(x, window.innerWidth - 200));
+                y = Math.max(0, Math.min(y, window.innerHeight - 80));
+            }
+        });
+    </script>
+</body>
+</html>
